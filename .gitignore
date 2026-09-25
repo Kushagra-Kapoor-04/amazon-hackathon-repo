@@ -1,0 +1,13 @@
+data/raw/
+data/processed/
+output/*.tsv
+!output/.gitkeep
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+venv/
+*.pkl
+*.joblib
+.env
+.DS_Store
