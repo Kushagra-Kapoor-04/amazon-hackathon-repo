@@ -2,15 +2,33 @@
 naive_block.py
 
 Baseline blocking strategy: generate candidates using normalized-name token
-overlap, optionally filtered by country. This is intentionally simple —
-it exists to get a working end-to-end pipeline and first submission fast.
-Replace / augment with tfidf_lsh.py and phonetic_block.py for better recall.
+overlap, optionally filtered by country.
+
+IMPORTANT: legal-suffix / boilerplate tokens (limited, private, ltd, llc,
+and their transliterations e.g. लिमिटेड, प्राइवेट, or French sarl/sas) are
+extremely common and useless for blocking — indexing them naively causes an
+O(n^2) blowup where a single token maps to hundreds of thousands of records.
+This version strips legal suffixes before tokenizing for the index, AND caps
+any token whose document frequency exceeds `max_doc_frequency` as a safety
+net against any other unexpectedly common word (including non-English ones
+this stopword list doesn't anticipate).
 """
 
 import csv
 from collections import defaultdict
 
-from src.preprocessing.normalize import normalize_name, normalize_country
+from src.preprocessing.normalize import normalize_name, normalize_country, strip_legal_suffix
+
+# Extra boilerplate tokens to exclude from blocking keys, beyond the legal
+# suffixes already stripped by strip_legal_suffix(). Includes transliterations
+# and common multi-country legal/corporate boilerplate seen in this dataset.
+STOPWORDS = {
+    "limited", "private", "ltd", "llc", "inc", "pvt", "corp", "corporation",
+    "company", "co", "llp", "group", "holdings", "enterprises", "services",
+    "partners", "center", "and", "sarl", "sas", "sa",
+    "लिमिटेड", "प्राइवेट",  # Hindi transliterations of Limited / Private
+    "(india)",
+}
 
 
 def load_records(path):
@@ -23,36 +41,62 @@ def load_records(path):
     return records
 
 
-def build_token_index(records):
+def _blocking_tokens(business_name: str):
     """
-    Build an inverted index: token -> list of entity_ids.
-    Tokens come from normalized business_name.
+    Tokens used as blocking keys: normalized, legal-suffix stripped,
+    stopwords removed, length >= 3.
     """
-    index = defaultdict(set)
+    core_name = strip_legal_suffix(business_name)  # drops trailing legal suffix
+    tokens = [t for t in core_name.split() if len(t) >= 3 and t not in STOPWORDS]
+    return tokens
+
+
+def build_token_index(records, max_doc_frequency: int = 500):
+    """
+    Build an inverted index: token -> set of entity_ids, skipping stopwords
+    and any token whose document frequency exceeds max_doc_frequency (a
+    safety net against unexpectedly common tokens blowing up candidate sets).
+    """
+    raw_index = defaultdict(set)
     norm_cache = {}
+
     for r in records:
         norm_name = normalize_name(r.get("business_name", ""))
         norm_cache[r["entity_id"]] = {
             "norm_name": norm_name,
             "country": normalize_country(r.get("country", "")),
         }
-        for token in norm_name.split():
-            if len(token) >= 3:  # skip very short/common tokens
-                index[token].add(r["entity_id"])
+        for token in _blocking_tokens(r.get("business_name", "")):
+            raw_index[token].add(r["entity_id"])
+
+    # Drop tokens that are still too common after stopword removal.
+    dropped = 0
+    index = {}
+    for token, ids in raw_index.items():
+        if len(ids) > max_doc_frequency:
+            dropped += 1
+            continue
+        index[token] = ids
+
+    if dropped:
+        print(f"[blocking] Dropped {dropped} high-frequency tokens "
+              f"(doc frequency > {max_doc_frequency}) to prevent candidate blowup.")
+
     return index, norm_cache
 
 
 def generate_candidates(source1_records, source2_records, source3_records,
                          top_k=30, use_country_filter=True,
-                         unknown_country_fallback=True):
+                         unknown_country_fallback=True,
+                         max_doc_frequency=500):
     """
     For each Source 1 record, find candidate Source 2 / Source 3 records
-    that share at least one normalized-name token (and optionally country).
+    that share at least one blocking token (and optionally country).
 
     Returns: dict {source1_entity_id: [candidate_entity_id, ...]}
     """
-    idx2, cache2 = build_token_index(source2_records)
-    idx3, cache3 = build_token_index(source3_records)
+    idx2, cache2 = build_token_index(source2_records, max_doc_frequency=max_doc_frequency)
+    idx3, cache3 = build_token_index(source3_records, max_doc_frequency=max_doc_frequency)
 
     known_countries = set()
     for r in source1_records + source2_records + source3_records:
@@ -61,11 +105,14 @@ def generate_candidates(source1_records, source2_records, source3_records,
             known_countries.add(c)
 
     results = {}
-    for r in source1_records:
+    total = len(source1_records)
+    for i, r in enumerate(source1_records):
+        if i > 0 and i % 5000 == 0:
+            print(f"[blocking] Processed {i}/{total} Source 1 entities...")
+
         s1_id = r["entity_id"]
-        norm_name = normalize_name(r.get("business_name", ""))
         s1_country = normalize_country(r.get("country", ""))
-        tokens = [t for t in norm_name.split() if len(t) >= 3]
+        tokens = _blocking_tokens(r.get("business_name", ""))
 
         candidate_scores = defaultdict(int)
 
@@ -120,6 +167,7 @@ if __name__ == "__main__":
         top_k=block_cfg["top_k_per_entity"],
         use_country_filter=block_cfg["use_country_filter"],
         unknown_country_fallback=block_cfg["unknown_country_fallback"],
+        max_doc_frequency=block_cfg.get("max_doc_frequency", 500),
     )
 
     out_path = paths["candidate_pairs_out"]

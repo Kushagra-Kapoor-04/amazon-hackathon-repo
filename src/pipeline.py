@@ -52,6 +52,7 @@ def run_pipeline(cfg: dict, split: str = "test"):
         top_k=block_cfg["top_k_per_entity"],
         use_country_filter=block_cfg["use_country_filter"],
         unknown_country_fallback=block_cfg["unknown_country_fallback"],
+        max_doc_frequency=block_cfg.get("max_doc_frequency", 500),
     )
 
     candidate_pairs_path = paths["candidate_pairs_out"]

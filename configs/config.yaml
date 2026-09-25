@@ -40,6 +40,7 @@ blocking:
   min_name_similarity: 0.3    # loose pre-filter before TF-IDF/LSH scoring
   use_country_filter: true    # only block within same country when known
   unknown_country_fallback: true  # if country unseen (e.g. France), don't filter by it — just skip country filter for that record
+  max_doc_frequency: 500      # skip any blocking token appearing in more than this many records (prevents O(n^2) blowup from common words)
 
 # ------------------------------------------------------------
 # Feature engineering
