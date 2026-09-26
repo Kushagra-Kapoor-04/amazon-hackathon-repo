@@ -1,0 +1,63 @@
+======================================================================
+  ML CHALLENGE 2026 -- DATA INSPECTION REPORT
+  Config : configs/config.yaml
+======================================================================
+
+======================================================================
+  FILE: TRAIN SOURCE 1
+  PATH: data/raw/train/train_source1.tsv
+======================================================================
+  *** FILE NOT FOUND ***
+
+======================================================================
+  FILE: TRAIN SOURCE 2
+  PATH: data/raw/train/train_source2.tsv
+======================================================================
+  *** FILE NOT FOUND ***
+
+======================================================================
+  FILE: TRAIN SOURCE 3
+  PATH: data/raw/train/train_source3.tsv
+======================================================================
+  *** FILE NOT FOUND ***
+
+======================================================================
+  FILE: TRAIN GROUND TRUTH
+  PATH: data/raw/train/train_ground_truth.tsv
+======================================================================
+  *** FILE NOT FOUND ***
+
+======================================================================
+  FILE: TEST SOURCE 1
+  PATH: data/raw/test/test_source1.tsv
+======================================================================
+  *** FILE NOT FOUND ***
+
+======================================================================
+  FILE: TEST SOURCE 2
+  PATH: data/raw/test/test_source2.tsv
+======================================================================
+  *** FILE NOT FOUND ***
+
+======================================================================
+  FILE: TEST SOURCE 3
+  PATH: data/raw/test/test_source3.tsv
+======================================================================
+  *** FILE NOT FOUND ***
+
+======================================================================
+  CROSS-FILE CONSISTENCY CHECKS
+======================================================================
+
+======================================================================
+  SUMMARY
+======================================================================
+  train_source1.tsv  : FILE NOT FOUND rows
+  train_source2.tsv  : FILE NOT FOUND rows
+  train_source3.tsv  : FILE NOT FOUND rows
+  train_ground_truth : FILE NOT FOUND rows
+  test_source1.tsv   : FILE NOT FOUND rows
+  test_source2.tsv   : FILE NOT FOUND rows
+  test_source3.tsv   : FILE NOT FOUND rows
+
+  All checks complete.

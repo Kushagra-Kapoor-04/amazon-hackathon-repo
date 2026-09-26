@@ -1,0 +1,37 @@
+Stage 2 Report
+
+1. Dataset availability
+- The challenge dataset files (train and test TSVs) are NOT present in the data/raw/ directory.
+
+2. Files reviewed/changed
+- src/preprocessing/normalize.py
+- src/preprocessing/parse_address.py
+- src/preprocessing/__init__.py
+- experiments/stage2_report.txt
+
+3. Normalization functionality
+- Implemented robust string normalization avoiding over-normalization.
+- Accent conversion to ASCII via NFD decomposition.
+- Safe punctuation stripping, converting `&` to `and`.
+- Expanded abbreviations and parsed single and multi-word legal suffixes correctly.
+- Fallback passthrough for open-set countries.
+- Phone number standardization and digit extraction.
+
+4. Address parsing functionality
+- Implemented heuristic-based parsing without relying on external lookups.
+- Postal code regex targeting typical datasets (US, India, UK, etc.).
+- Robust logic to extract house numbers, unit/block markers, and city/state splits based on trailing components.
+- Maintained a normalized_full fallback address string to preserve information when heuristics miss.
+
+5. Test results
+- 45/45 normalize tests passed.
+- 17/17 parse_address tests passed.
+- Total 62/62 preprocessing tests passed successfully.
+- Verified pipeline module imports (11 modules) load cleanly after dependencies were installed.
+
+6. Any remaining issue
+- Data is not present locally; `data/raw/` is empty. The code cannot be run on actual data yet.
+- `rapidfuzz` and other libraries were found missing in the `.venv` initially, but were installed to fix the pipeline imports test.
+
+7. What the next stage should be
+- Stage 3: Blocking & Candidate Generation (implement TF-IDF/LSH and phonetic blocking on top of the normalized dataset).
